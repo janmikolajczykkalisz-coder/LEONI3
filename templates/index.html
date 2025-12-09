@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="{{ lang if lang is defined else 'pl' }}">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ t.title }}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Ikony Bootstrap -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <style>
+      .lang-toggle { position: absolute; top: 18px; right: 18px; }
+      .lang-toggle .btn { min-width: 56px; }
+    </style>
+</head>
+
+<body class="bg-light">
+{% include 'navbar.html' %}
+
+<div class="container py-4 position-relative">
+    <!-- Przełącznik języka -->
+    <div class="lang-toggle">
+      <a href="{{ url_for('set_lang', lang_code='pl') }}" class="btn btn-outline-secondary {% if lang=='pl' %}active{% endif %}">PL</a>
+      <a href="{{ url_for('set_lang', lang_code='de') }}" class="btn btn-outline-secondary {% if lang=='de' %}active{% endif %}">DE</a>
+    </div>
+
+    <h2 class="text-center mb-4">{{ t.title }}</h2>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            {{ t.title }}
+        </div>
+        <div class="card-body">
+            <form method="POST" id="satzForm">
+
+               <!-- Numer karty -->
+               <div class="mb-3">
+                  <label class="form-label">{{ t.satz_label }}</label>
+                  <input type="text" name="satznummer" class="form-control" value="{{ generated_satznummer }}" readonly>
+                </div>
+
+                <!-- Operator -->
+                <div class="mb-3">
+                  <label class="form-label">{{ t.operator_label }}</label>
+                  <input type="text" name="operator" class="form-control" placeholder="{{ t.operator_label }}" required>
+                </div>
+
+                <!-- Zestaw średnic -->
+                <div class="mb-3">
+                    <label class="form-label">{{ t.select_set_label }}</label>
+                    <select name="diameter_set" id="diameter_set" class="form-select" required>
+                        <option value="3" selected>Grundsatz</option>
+                        <option value="2">Mittelsatz</option>
+                        <option value="1">Untersatz</option>
+                    </select>
+                </div>
+
+                <!-- Numer maszyny -->
+                <div class="mb-3">
+                    <label class="form-label">{{ t.machine_label }}</label>
+                    <input type="text" name="machine_number" class="form-control" placeholder="{{ t.machine_label }}">
+                </div>
+
+                <!-- Typ kamienia -->
+                <div class="mb-3">
+                  <label class="form-label">{{ t.stone_type_label }}</label>
+                  <select name="stone_type" class="form-select" required>
+                    <option value="ND" selected>ND</option>
+                    <option value="PCD">PCD</option>
+                  </select>
+                </div>
+
+                <!-- Tabela średnic -->
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered align-middle text-center">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ t.col_code }}</th>
+                                <th>{{ t.col_diameter }}</th>
+                                <th>{{ t.col_action }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="diameters-tbody">
+                            {% for d in diams %}
+                            <tr>
+                                <td>
+                                    <input type="text" id="code{{ loop.index0 }}" name="code{{ loop.index0 }}"
+                                           class="form-control" placeholder="{{ t.col_code }} #{{ loop.index }}" required>
+                                </td>
+                                <td>
+                                    <input type="number" step="0.0001" name="diameter{{ loop.index0 }}"
+                                           class="form-control diam-cell" value="{{ "%.4f"|format(d) }}">
+                                </td>
+                                <td class="d-flex gap-2">
+                                    <button type="button" class="btn btn-outline-primary btn-sm"
+                                            onclick="startScanner('code{{ loop.index0 }}', {{ loop.index0 }})">
+                                        <i class="bi bi-qr-code-scan"></i> {{ 'Skanuj' if lang=='pl' else 'Scannen' }}
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                            onclick="removeRow(this)">
+                                        <i class="bi bi-trash"></i> {{ 'Usuń' if lang=='pl' else 'Löschen' }}
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Przycisk dodawania kamienia -->
+                <div class="text-end mb-3">
+                  <button type="button" class="btn btn-success" onclick="addStoneRow()">
+                    <i class="bi bi-plus-circle"></i> {{ t.add_stone }}
+                  </button>
+                </div>
+
+                <!-- Podgląd kamery -->
+                <div id="reader" style="width:320px; max-width:100%; margin: 0 auto 16px; display:none;"></div>
+
+                <!-- Przyciski -->
+                <div class="d-flex gap-2">
+                  <button type="submit" class="btn btn-success flex-fill">
+                    <i class="bi bi-file-earmark-pdf"></i> {{ t.generate_pdf }}
+                  </button>
+                  <button formaction="{{ url_for('generate_label_direct') }}" class="btn btn-warning flex-fill">
+                    <i class="bi bi-tag"></i> {{ t.generate_label }}
+                  </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <!-- Link do historii -->
+    <div class="text-center mt-4">
+        <a href="/history" class="btn btn-outline-primary">{{ t.history_link }}</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<script>
+/*
+  Skrypt:
+  - przełącznik języka (przekierowanie do /set_lang/<kod>)
+  - obsługa zmiany zestawu średnic: podmiana wartości w polach .diam-cell
+  - generowanie tablic średnic z danych przekazanych przez Jinja (jeśli dostępne)
+*/
+
+/* --- Przyciski i przełącznik języka --- */
+document.addEventListener('DOMContentLoaded', function() {
+  const btnLang = document.getElementById('btnLang');
+  if (btnLang) {
+    btnLang.addEventListener('click', function() {
+      const current = "{{ lang if lang is defined else 'pl' }}";
+      const next = current === "pl" ? "de" : "pl";
+      window.location.href = "/set_lang/" + next;
+    });
+  }
+
+  // Obsługa zmiany zestawu średnic
+  const select = document.getElementById('diameter_set');
+  if (select) {
+    select.addEventListener('change', function() {
+      // oczekujemy, że backend może przekazać trzy zestawy jako zmienne Jinja:
+      // set1, set2, set3 (lista liczb). Jeśli nie są dostępne, nic nie zmieniamy.
+      let diameters = [];
+      try {
+        const v = this.value;
+        if (v === '1' && typeof diametersSet1 !== 'undefined') diameters = diametersSet1;
+        else if (v === '2' && typeof diametersSet2 !== 'undefined') diameters = diametersSet2;
+        else if (v === '3' && typeof diametersSet3 !== 'undefined') diameters = diametersSet3;
+      } catch (e) {
+        diameters = [];
+      }
+
+      // podmień wartości w istniejących polach .diam-cell (kolejność zgodna z wierszami)
+      const inputs = document.querySelectorAll('.diam-cell');
+      inputs.forEach((input, idx) => {
+        if (diameters[idx] !== undefined && diameters[idx] !== null) {
+          input.value = Number(diameters[idx]).toFixed(4);
+        }
+      });
+    });
+  }
+});
+
+/* --- Funkcje do manipulacji tabelą --- */
+function removeRow(button) {
+  const row = button.closest("tr");
+  if (row) row.remove();
+}
+
+function addStoneRow() {
+  const tableBody = document.querySelector("#diameters-tbody");
+  const index = tableBody.rows.length;
+  const newRow = document.createElement("tr");
+  newRow.innerHTML = `
+    <td>
+      <input type="text" id="code${index}" name="code${index}"
+             class="form-control" placeholder="Kod #${index+1}" required>
+    </td>
+    <td>
+      <input type="number" step="0.0001" name="diameter${index}"
+             class="form-control diam-cell" placeholder="Średnica">
+    </td>
+    <td class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-primary btn-sm"
+              onclick="startScanner('code${index}', ${index})">
+        <i class="bi bi-qr-code-scan"></i> Skanuj
+      </button>
+      <button type="button" class="btn btn-outline-danger btn-sm"
+              onclick="removeRow(this)">
+        <i class="bi bi-trash"></i> Usuń
+      </button>
+    </td>
+  `;
+  tableBody.appendChild(newRow);
+}
+
+/* --- Opcjonalne: wstrzyknięcie tablic średnic z backendu --- */
+/*
+  Jeśli w backendzie masz zmienne set1, set2, set3 (listy liczb),
+  odkomentuj poniższe linie i upewnij się, że przekazujesz je do szablonu.
+  Przykład w Flask: render_template('index.html', set1=set1, set2=set2, set3=set3, ...)
+*/
+{% if set1 is defined %}
+<script>
+  const diametersSet1 = {{ set1|tojson }};
+</script>
+{% endif %}
+{% if set2 is defined %}
+<script>
+  const diametersSet2 = {{ set2|tojson }};
+</script>
+{% endif %}
+{% if set3 is defined %}
+<script>
+  const diametersSet3 = {{ set3|tojson }};
+</script>
+{% endif %}
+
+</script>
+
+<script src="{{ url_for('static', filename='forms.js') }}"></script>
+</body>
+</html>
