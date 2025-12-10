@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // --- Obsługa zmiany zestawu średnic ---
+  // --- Obsługa zmiany zestawu średnic (index.html) ---
   const select = document.getElementById('diameter_set');
   if (select) {
     select.addEventListener('change', function() {
@@ -33,13 +33,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// --- Usuwanie kamienia ---
+// --- Funkcje do manipulacji tabelą (index.html) ---
 function removeRow(button) {
   const row = button.closest("tr");
   if (row) row.remove();
 }
 
-// --- Dodawanie kamienia ---
 function addStoneRow() {
   const tableBody = document.querySelector("#diameters-tbody");
   const index = tableBody.rows.length;
@@ -65,4 +64,70 @@ function addStoneRow() {
     </td>
   `;
   tableBody.appendChild(newRow);
+}
+
+// --- AJAX do zmiany statusu (history.html) ---
+function updateStatus(stoneId, newStatus) {
+  fetch(`/update_status/${stoneId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `status=${encodeURIComponent(newStatus)}`
+  });
+}
+
+// --- Dynamiczne uzupełnianie średnic (history.html) ---
+function initHistoryDiameters(diametersBySet) {
+  const zestawSelect = document.getElementById("zestawSelect");
+  const diameterSelect = document.getElementById("diameterSelect");
+
+  function updateDiameters() {
+    const zestaw = zestawSelect.value;
+    const options = diametersBySet[zestaw] || [];
+    diameterSelect.innerHTML = "";
+    options.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = Number(d).toFixed(4);
+      diameterSelect.appendChild(opt);
+    });
+  }
+
+  if (zestawSelect && diameterSelect) {
+    zestawSelect.addEventListener("change", updateDiameters);
+    updateDiameters(); // inicjalizacja przy pierwszym otwarciu
+  }
+}
+
+// --- QR Code Scanner (index.html + history.html) ---
+let html5QrCode;
+function startScanner(inputId, index) {
+  const readerElem = document.getElementById("reader");
+  readerElem.style.display = "block";
+
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    (decodedText) => {
+      // wpisz wynik do pola formularza
+      if (inputId) {
+        document.getElementById(inputId).value = decodedText;
+      } else {
+        const scannedField = document.getElementById("scannedCode");
+        if (scannedField) scannedField.value = decodedText;
+      }
+      // zatrzymaj skaner po odczycie
+      html5QrCode.stop().then(() => {
+        readerElem.style.display = "none";
+      });
+    },
+    (errorMessage) => {
+      // ignorujemy błędy odczytu
+    }
+  ).catch(err => {
+    console.error("Błąd uruchamiania skanera:", err);
+  });
 }
