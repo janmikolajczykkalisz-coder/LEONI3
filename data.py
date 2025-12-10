@@ -19,3 +19,38 @@ DIAMETERS_BY_SET = {
     "2": DIAMETERS_SET_2,
     "3": DIAMETERS_SET_3
 }
+ZESTAWY = {"1": "Untersatz", "2": "Mittelsatz", "3": "Grundsatz"}
+TRANSLATIONS = {
+    "pl": {
+        "title": "Generator SATZ-KARTE",
+        "satz_label": "Numer karty setu :",
+        "operator_label": "Operator:",
+        "select_set_label": "Wybierz zestaw średnic:",
+        "machine_label": "Numer maszyny:",
+        "stone_type_label": "Typ kamienia:",
+        "col_code": "Kod kamienia",
+        "col_diameter": "Średnica (mm)",
+        "col_action": "Akcja",
+        "add_stone": "Dodaj kamień",
+        "generate_pdf": "Generuj etykietę PDF",
+        "generate_label": "Generuj Naklejkę",
+        "history_link": "📜 Zobacz historię zapisanych kart",
+        "lang_toggle_title": "Przełącz język PL/DE"
+    },
+    "de": {
+        "title": "Generator SATZ-KARTE",
+        "satz_label": "Satzkartennummer:",
+        "operator_label": "Bearbeiter:",
+        "select_set_label": "Wählen Sie den Durchmessersatz:",
+        "machine_label": "Maschinennummer:",
+        "stone_type_label": "Steintyp:",
+        "col_code": "Steincode",
+        "col_diameter": "Durchmesser (mm)",
+        "col_action": "Aktion",
+        "add_stone": "Stein hinzufügen",
+        "generate_pdf": "PDF erstellen",
+        "generate_label": "Etikett erstellen",
+        "history_link": "📜 Gespeicherte Karten ansehen",
+        "lang_toggle_title": "Sprache umschalten PL/DE"
+    }
+}
