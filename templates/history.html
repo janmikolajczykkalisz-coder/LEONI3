@@ -130,42 +130,79 @@
             <th>Akcje</th>
           </tr>
         </thead>
-        <tbody>
-          {% for row in details %}
-          <tr>
-            <td>{{ row[0] }}</td>
-            <td>{{ row[1] }}</td>
-            <td>
-              {% if row[2] is not none %}
-                {{ "%.4f"|format(row[2]) }}
-              {% else %}
-                -
-              {% endif %}
-            </td>
-            <td>
-              <select class="form-select form-select-sm"
-                      onchange="updateStatus({{ row[3] }}, this.value)">
-                <option value="Nowy" {{ 'selected' if row[4] == 'Nowy' else '' }}>Nowy</option>
-                <option value="Do naprawy" {{ 'selected' if row[4] == 'Do naprawy' else '' }}>Do naprawy</option>
-                <option value="Do utylizacji" {{ 'selected' if row[4] == 'Do utylizacji' else '' }}>Do utylizacji</option>
-              </select>
-            </td>
-            <td>
-              <form method="post" action="/delete_stone/{{ row[3] }}"
-                    onsubmit="return confirm('Na pewno zutylizować ten kamień?')">
-                <button type="submit" class="btn btn-sm btn-danger">
-                  <i class="bi bi-trash"></i> Usuń
-                </button>
-              </form>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">Brak szczegółów</td>
-          </tr>
-          {% endfor %}
-        </tbody>
+       <tbody>
+  {% for row in details %}
+  <tr>
+    <td>{{ row.satznummer }}</td>
+    <td>{{ row.code }}</td>
+    <td>
+      {% if row.diameter is not none %}
+        {{ "%.4f"|format(row.diameter) }}
+      {% else %}
+        -
+      {% endif %}
+    </td>
+    <td>
+      <select class="form-select form-select-sm"
+              onchange="updateStatus({{ row.id }}, this.value)">
+        <option value="Nowy" {{ 'selected' if row.status == 'Nowy' else '' }}>Nowy</option>
+        <option value="Do naprawy" {{ 'selected' if row.status == 'Do naprawy' else '' }}>Do naprawy</option>
+        <option value="Do utylizacji" {{ 'selected' if row.status == 'Do utylizacji' else '' }}>Do utylizacji</option>
+      </select>
+    </td>
+    <td>
+      <form method="post" action="/delete_stone/{{ row.id }}"
+            onsubmit="return confirm('Na pewno zutylizować ten kamień?')">
+        <button type="submit" class="btn btn-sm btn-danger">
+          <i class="bi bi-trash"></i> Usuń
+        </button>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr>
+    <td colspan="5" class="text-center text-muted">Brak szczegółów</td>
+  </tr>
+  {% endfor %}
+</tbody>
+
       </table>
+        <div class="d-flex justify-content-center my-3">
+  <nav>
+    <ul class="pagination">
+      {% if page > 1 %}
+      <li class="page-item">
+        <a class="page-link"
+           href="{{ url_for('history', page=page-1,
+                            satznummer=filters.satznummer,
+                            machine=filters.machine,
+                            zestaw=filters.zestaw,
+                            date_from=filters.date_from,
+                            date_to=filters.date_to,
+                            code=filters.code,
+                            diameter=filters.diameter) }}">
+          « Poprzednia
+        </a>
+      </li>
+      {% endif %}
+
+      <li class="page-item">
+        <a class="page-link"
+           href="{{ url_for('history', page=page+1,
+                            satznummer=filters.satznummer,
+                            machine=filters.machine,
+                            zestaw=filters.zestaw,
+                            date_from=filters.date_from,
+                            date_to=filters.date_to,
+                            code=filters.code,
+                            diameter=filters.diameter) }}">
+          Następna »
+        </a>
+      </li>
+    </ul>
+  </nav>
+</div>
+
     </div>
   </div>
 
