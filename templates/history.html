@@ -221,75 +221,7 @@
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-<!-- AJAX do zmiany statusu -->
-<script>
-function updateStatus(stoneId, newStatus) {
-  fetch(`/update_status/${stoneId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `status=${encodeURIComponent(newStatus)}`
-  });
-}
-</script>
-
-<!-- Skrypt do dynamicznego uzupełniania średnic -->
-<script>
-  const diametersBySet = {{ diameters_by_set|tojson }};
-  const zestawSelect = document.getElementById("zestawSelect");
-  const diameterSelect = document.getElementById("diameterSelect");
-
-  function updateDiameters() {
-    const zestaw = zestawSelect.value;
-    const options = diametersBySet[zestaw] || [];
-    diameterSelect.innerHTML = "";
-    options.forEach(d => {
-      const opt = document.createElement("option");
-      opt.value = d;
-      opt.textContent = d.toFixed(4);
-      diameterSelect.appendChild(opt);
-    });
-  }
-
-  zestawSelect.addEventListener("change", updateDiameters);
-  // ustaw listę przy pierwszym otwarciu
-  updateDiameters();
-</script>
-
-<!-- Biblioteka html5-qrcode -->
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-
-<script>
-let html5QrCode;
-
-function startScanner() {
-  const readerElem = document.getElementById("reader");
-  readerElem.style.display = "block";
-
-  if (!html5QrCode) {
-    html5QrCode = new Html5Qrcode("reader");
-  }
-
-  html5QrCode.start(
-    { facingMode: "environment" }, // tylna kamera
-    { fps: 10, qrbox: 250 },
-    (decodedText) => {
-      // wpisz wynik do pola formularza
-      document.getElementById("scannedCode").value = decodedText;
-      // zatrzymaj skaner po odczycie
-      html5QrCode.stop().then(() => {
-        readerElem.style.display = "none";
-      });
-    },
-    (errorMessage) => {
-      // błędy odczytu ignorujemy, bo kamera skanuje dalej
-    }
-  ).catch(err => {
-    console.error("Błąd uruchamiania skanera:", err);
-  });
-}
-</script>
-
+<script src="{{ url_for('static', filename='forms.js') }}"></script>
 </body>
 </html>
-
